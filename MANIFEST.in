@@ -2,4 +2,4 @@ include LICENSE
 include README.rst
 include VERSION
 include MANIFEST.in
-recursive-include casepropods *.gitignore
+recursive-include casepropods *.py *.gitignore
