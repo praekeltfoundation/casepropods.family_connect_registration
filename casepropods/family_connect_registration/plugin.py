@@ -1,5 +1,4 @@
 from confmodel import fields
-from casepro.cases.models import Case
 from casepro.pods import Pod, PodConfig, PodPlugin
 import requests
 
@@ -19,6 +18,8 @@ class RegistrationPodConfig(PodConfig):
 
 class RegistrationPod(Pod):
     def read_data(self, params):
+        from casepro.cases.models import Case
+
         # Setup
         url = self.config.url
         token = self.config.token
