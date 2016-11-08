@@ -8,6 +8,10 @@ class RegistrationPodConfig(PodConfig):
                             required=True)
     token = fields.ConfigText("Authentication token for registration endpoint",
                               required=True)
+    contact_id_fieldname = fields.ConfigText(
+        "The field-name to identify the contact in the registration service"
+        "Example: 'mother_id'",
+        required=True)
     field_mapping = fields.ConfigList(
         "Mapping of field names to what should be displayed for them."
         "Example:"
@@ -23,6 +27,7 @@ class RegistrationPod(Pod):
         # Setup
         url = self.config.url
         token = self.config.token
+        contact_id_fieldname = self.config.contact_id_fieldname
         mapping = self.config.field_mapping
         headers = {
             'Authorization': "Token " + token,
@@ -32,7 +37,7 @@ class RegistrationPod(Pod):
         case = Case.objects.get(pk=case_id)
 
         # Get and format registration response
-        r = requests.get(url, params={'mother_id': case.contact.uuid},
+        r = requests.get(url, params={contact_id_fieldname: case.contact.uuid},
                          headers=headers)
         r.raise_for_status()
         response = r.json()
