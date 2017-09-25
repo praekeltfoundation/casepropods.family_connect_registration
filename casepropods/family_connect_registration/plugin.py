@@ -37,9 +37,8 @@ class RegistrationPod(Pod):
         case_id = params["case_id"]
         case = Case.objects.get(pk=case_id)
 
-        # If case.contact.uuid is NoneType, no mother_id param (contact_id_fieldname) will be appended
-        # to the request so we will get all the registrations.
-        return content
+        if case.contact.uuid is None:
+            return content
 
         # Get and format registration response
         r = requests.get(url, params={contact_id_fieldname: case.contact.uuid},
