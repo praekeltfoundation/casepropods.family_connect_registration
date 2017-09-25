@@ -136,3 +136,15 @@ class RegistrationPodTest(BaseCasesTest):
                 "hcw00001-63e2-4acc-9b94-26663b9bc267"},
             {"name": "Receives Messages As", "value": "text"},
         ]})
+
+    @responses.activate
+    def test_no_http_request_if_contact_uuid_is_none(self):
+        contact_no_uuid = self.create_contact(self.unicef, None, "Mother")
+        message = self.create_message(self.unicef, 1234, contact_no_uuid, "Hello")
+        case = Case.get_or_open(
+            self.unicef, self.user1, message, "Summary", self.moh)
+
+        result = self.pod.read_data({'case_id': case.id})
+
+        self.assertEqual(len(responses.calls), 0)
+        self.assertEqual(result, {'items': []})

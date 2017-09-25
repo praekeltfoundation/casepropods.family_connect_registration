@@ -25,6 +25,7 @@ class RegistrationPod(Pod):
         from casepro.cases.models import Case
 
         # Setup
+        content = {"items": []}
         url = self.config.url
         token = self.config.token
         contact_id_fieldname = self.config.contact_id_fieldname
@@ -36,6 +37,9 @@ class RegistrationPod(Pod):
         case_id = params["case_id"]
         case = Case.objects.get(pk=case_id)
 
+        if case.contact.uuid is None:
+            return content
+
         # Get and format registration response
         r = requests.get(url, params={contact_id_fieldname: case.contact.uuid},
                          headers=headers)
@@ -43,7 +47,6 @@ class RegistrationPod(Pod):
         response = r.json()
         results = response["results"]
 
-        content = {"items": []}
         for result in results:
             for obj in mapping:
                 if obj["field"] in result:
