@@ -167,3 +167,24 @@ class RegistrationPodTest(BaseCasesTest):
             result['items'][0],
             {'name': 'Mother Name', 'value': 'sue-toplevel'},
         )
+
+    @responses.activate
+    def test_multiple_results_uses_first_result(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': [{
+                'mama_name': 'result-one',
+                'data': {},
+            }, {
+                'mama_name': 'result-two',
+                'data': {},
+            }]},
+            match_querystring=True, content_type='application/json')
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][0],
+            {'name': 'Mother Name', 'value': 'result-one'},
+        )
