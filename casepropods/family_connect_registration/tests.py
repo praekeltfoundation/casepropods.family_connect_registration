@@ -140,7 +140,8 @@ class RegistrationPodTest(BaseCasesTest):
     @responses.activate
     def test_no_http_request_if_contact_uuid_is_none(self):
         contact_no_uuid = self.create_contact(self.unicef, None, "Mother")
-        message = self.create_message(self.unicef, 1234, contact_no_uuid, "Hello")
+        message = self.create_message(
+            self.unicef, 1234, contact_no_uuid, "Hello")
         case = Case.get_or_open(
             self.unicef, self.user1, message, "Summary", self.moh)
 

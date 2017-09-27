@@ -31,6 +31,8 @@ before_install:
 
 install:
   - pip install -e $TRAVIS_BUILD_DIR/
+  - pip install flake8==3.4.1
 
 script:
   - python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
+  - flake8 $TRAVIS_BUILD_DIR/
