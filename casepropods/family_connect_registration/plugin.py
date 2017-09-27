@@ -1,11 +1,10 @@
 from confmodel import fields
 from casepro.pods import Pod, PodConfig, PodPlugin
-import requests
+from seed_services_client import HubApiClient
 
 
 class RegistrationPodConfig(PodConfig):
-    url = fields.ConfigText("URL to query for the registration data",
-                            required=True)
+    url = fields.ConfigText("URL of the hub API service", required=True)
     token = fields.ConfigText("Authentication token for registration endpoint",
                               required=True)
     contact_id_fieldname = fields.ConfigText(
@@ -26,28 +25,23 @@ class RegistrationPod(Pod):
 
         # Setup
         content = {"items": []}
-        url = self.config.url
-        token = self.config.token
         contact_id_fieldname = self.config.contact_id_fieldname
         mapping = self.config.field_mapping
-        headers = {
-            'Authorization': "Token " + token,
-            'Content-Type': "application/json"
-        }
         case_id = params["case_id"]
         case = Case.objects.get(pk=case_id)
 
         if case.contact.uuid is None:
             return content
 
-        # Get and format registration response
-        r = requests.get(url, params={contact_id_fieldname: case.contact.uuid},
-                         headers=headers)
-        r.raise_for_status()
-        response = r.json()
-        results = response["results"]
+        hub_api = HubApiClient(
+            auth_token=self.config.token,
+            api_url=self.config.url,
+        )
 
-        for result in results:
+        response = hub_api.get_registrations(
+            params={contact_id_fieldname: case.contact.uuid})
+
+        for result in response["results"]:
             for obj in mapping:
                 if obj["field"] in result:
                     value = result[obj["field"]]
