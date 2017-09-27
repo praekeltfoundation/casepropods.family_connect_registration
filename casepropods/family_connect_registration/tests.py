@@ -147,3 +147,23 @@ class RegistrationPodTest(BaseCasesTest):
 
         self.assertEqual(len(responses.calls), 0)
         self.assertEqual(result, {'items': []})
+
+    @responses.activate
+    def test_top_level_results_precendence_over_data(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': [{
+                'mama_name': 'sue-toplevel',
+                'data': {
+                    'mama_name': 'sue-data',
+                },
+            }]},
+            match_querystring=True, content_type='application/json')
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][0],
+            {'name': 'Mother Name', 'value': 'sue-toplevel'},
+        )
