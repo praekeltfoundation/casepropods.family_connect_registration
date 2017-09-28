@@ -1,12 +1,17 @@
 from confmodel import fields
 from casepro.pods import Pod, PodConfig, PodPlugin
-from seed_services_client import HubApiClient
+from seed_services_client import HubApiClient, IdentityStoreApiClient
 
 
 class RegistrationPodConfig(PodConfig):
-    url = fields.ConfigText("URL of the hub API service", required=True)
-    token = fields.ConfigText("Authentication token for registration endpoint",
-                              required=True)
+    hub_api_url = fields.ConfigText(
+        "URL of the hub API service", required=True)
+    hub_token = fields.ConfigText(
+        "Authentication token for registration endpoint", required=True)
+    identity_store_api_url = fields.ConfigText(
+        "URL of the identity store API service", required=True)
+    identity_store_token = fields.ConfigText(
+        "Authentication token for identity store service", required=True)
     contact_id_fieldname = fields.ConfigText(
         "The field-name to identify the contact in the registration service"
         "Example: 'mother_id'",
@@ -46,8 +51,8 @@ class RegistrationPod(Pod):
             return content
 
         hub_api = HubApiClient(
-            auth_token=self.config.token,
-            api_url=self.config.url,
+            auth_token=self.config.hub_token,
+            api_url=self.config.hub_api_url,
         )
 
         response = hub_api.get_registrations(
@@ -57,9 +62,22 @@ class RegistrationPod(Pod):
 
         results_data_field = [result['data'] for result in results]
 
+        identity_store = IdentityStoreApiClient(
+            auth_token=self.config.identity_store_token,
+            api_url=self.config.identity_store_api_url,
+        )
+
+        identity = identity_store.get_identity(case.contact.uuid)
+
+        if identity is not None and 'details' in identity:
+            identity_details = [identity['details']]
+        else:
+            identity_details = []
+
         for field in mapping:
             value = self.lookup_field_from_dictionaries(
                 field['field'],
+                identity_details,
                 results,
                 results_data_field,
             )
