@@ -14,7 +14,7 @@ class RegistrationPodTest(BaseCasesTest):
             self.unicef, 123, self.contact, "Hello")
         self.case = Case.get_or_open(
             self.unicef, self.user1, self.msg1, "Summary", self.moh)
-        self.url = 'http://example.com/registration/?mother_id=' + \
+        self.url = 'http://hub/api/v1/registrations/?mother_id=' + \
             self.contact.uuid
 
         self.pod = RegistrationPod(
@@ -22,7 +22,7 @@ class RegistrationPodTest(BaseCasesTest):
             RegistrationPodConfig({
                 'index': 23,
                 'title': "My registration Pod",
-                'url': "http://example.com/registration/",
+                'url': "http://hub/api/v1/",
                 'token': "test_token",
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
@@ -53,7 +53,6 @@ class RegistrationPodTest(BaseCasesTest):
     def registration_callback_no_matches(self, request):
         headers = {'Content-Type': "application/json"}
         resp = {
-            'count': 0,
             'next': None,
             'previous': None,
             'results': []
@@ -63,7 +62,6 @@ class RegistrationPodTest(BaseCasesTest):
     def registration_callback_one_match(self, request):
         headers = {'Content-Type': "application/json"}
         resp = {
-            "count": 1,
             "next": None,
             "previous": None,
             "results": [{
@@ -140,7 +138,8 @@ class RegistrationPodTest(BaseCasesTest):
     @responses.activate
     def test_no_http_request_if_contact_uuid_is_none(self):
         contact_no_uuid = self.create_contact(self.unicef, None, "Mother")
-        message = self.create_message(self.unicef, 1234, contact_no_uuid, "Hello")
+        message = self.create_message(
+            self.unicef, 1234, contact_no_uuid, "Hello")
         case = Case.get_or_open(
             self.unicef, self.user1, message, "Summary", self.moh)
 
