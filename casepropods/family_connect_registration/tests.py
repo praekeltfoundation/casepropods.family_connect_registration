@@ -90,6 +90,37 @@ class RegistrationPodTest(BaseCasesTest):
             }]}
         return (200, headers, json.dumps(resp))
 
+    def test_lookup_field_from_one_dictionary(self):
+        field = 'test-field'
+        list_one = [{'test-field': 'first-value'}]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one),
+            'first-value'
+        )
+
+    def test_lookup_field_from_two_dictionaries(self):
+        field = 'test-field'
+        list_one = [
+            {'test-field': 'first-value'},
+            {'test-field': 'second-value'},
+        ]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one),
+            'first-value'
+        )
+
+    def test_lookup_field_from_two_dictionaries_no_match(self):
+        field = 'test-field'
+        list_one = [{'different-field': 'first-value'}]
+        list_two = [{'test-field': 'second-value'}]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one, list_two),
+            'second-value'
+        )
+
     @responses.activate
     def test_read_data_no_registrations(self):
         # Add callback
@@ -102,7 +133,21 @@ class RegistrationPodTest(BaseCasesTest):
 
         auth_header = responses.calls[0].request.headers['Authorization']
         self.assertEqual(auth_header, "Token test_token")
-        self.assertEqual(result, {"items": []})
+        self.assertEqual(result, {"items": [
+            {"name": "Mother Name", "value": "Unknown"},
+            {"name": "Mother Surname", "value": "Unknown"},
+            {"name": "Date of last period", "value": "Unknown"},
+            {"name": "Language Preference", "value": "Unknown"},
+            {"name": "ID Type", "value": "Unknown"},
+            {"name": "ID Number", "value": "Unknown"},
+            {"name": "Message Receiver", "value": "Unknown"},
+            {"name": "Receiver ID", "value": "Unknown"},
+            {"name": "Head of Household Name", "value": "Unknown"},
+            {"name": "Head of Household Surname", "value": "Unknown"},
+            {"name": "Head of Household ID", "value": "Unknown"},
+            {"name": "Operator ID", "value": "Unknown"},
+            {"name": "Receives Messages As", "value": "Unknown"},
+        ]})
 
     @responses.activate
     def test_read_data_one_registration(self):

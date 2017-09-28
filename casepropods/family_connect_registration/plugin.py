@@ -20,6 +20,18 @@ class RegistrationPodConfig(PodConfig):
 
 
 class RegistrationPod(Pod):
+    def lookup_field_from_dictionaries(self, field, *lists):
+        """
+        Receives a 'field' and one or more lists of dictionaries
+        to search for the field. Returns the first match.
+        """
+        for results_list in lists:
+            for result_dict in results_list:
+                if field in result_dict:
+                    return result_dict[field]
+
+        return 'Unknown'
+
     def read_data(self, params):
         from casepro.cases.models import Case
 
@@ -41,16 +53,21 @@ class RegistrationPod(Pod):
         response = hub_api.get_registrations(
             params={contact_id_fieldname: case.contact.uuid})
 
-        for result in response["results"]:
-            for obj in mapping:
-                if obj["field"] in result:
-                    value = result[obj["field"]]
-                elif obj["field"] in result["data"]:
-                    value = result["data"][obj["field"]]
-                else:
-                    value = "Unknown"
-                content['items'].append(
-                    {"name": obj["field_name"], "value": value})
+        results = list(response["results"])
+
+        results_data_field = [result['data'] for result in results]
+
+        for field in mapping:
+            value = self.lookup_field_from_dictionaries(
+                field['field'],
+                results,
+                results_data_field,
+            )
+            content['items'].append({
+                'name': field['field_name'],
+                'value': value,
+            })
+
         return content
 
 
