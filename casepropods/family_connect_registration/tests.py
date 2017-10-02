@@ -16,14 +16,18 @@ class RegistrationPodTest(BaseCasesTest):
             self.unicef, self.user1, self.msg1, "Summary", self.moh)
         self.url = 'http://hub/api/v1/registrations/?mother_id=' + \
             self.contact.uuid
+        self.identity_store_url = ('http://identity-store/api/v1/'
+                                   'identities/{0}/').format(self.contact.uuid)
 
         self.pod = RegistrationPod(
             apps.get_app_config('family_connect_registration_pod'),
             RegistrationPodConfig({
                 'index': 23,
                 'title': "My registration Pod",
-                'url': "http://hub/api/v1/",
-                'token': "test_token",
+                'hub_api_url': "http://hub/api/v1/",
+                'hub_token': "test_token",
+                'identity_store_api_url': 'http://identity-store/api/v1/',
+                'identity_store_token': 'identity-store-token',
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
                     {"field": "mama_name", "field_name": "Mother Name"},
@@ -90,6 +94,37 @@ class RegistrationPodTest(BaseCasesTest):
             }]}
         return (200, headers, json.dumps(resp))
 
+    def test_lookup_field_from_one_dictionary(self):
+        field = 'test-field'
+        list_one = [{'test-field': 'first-value'}]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one),
+            'first-value'
+        )
+
+    def test_lookup_field_from_two_dictionaries(self):
+        field = 'test-field'
+        list_one = [
+            {'test-field': 'first-value'},
+            {'test-field': 'second-value'},
+        ]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one),
+            'first-value'
+        )
+
+    def test_lookup_field_from_two_dictionaries_no_match(self):
+        field = 'test-field'
+        list_one = [{'different-field': 'first-value'}]
+        list_two = [{'test-field': 'second-value'}]
+
+        self.assertEqual(
+            self.pod.lookup_field_from_dictionaries(field, list_one, list_two),
+            'second-value'
+        )
+
     @responses.activate
     def test_read_data_no_registrations(self):
         # Add callback
@@ -98,11 +133,28 @@ class RegistrationPodTest(BaseCasesTest):
             callback=self.registration_callback_no_matches,
             match_querystring=True, content_type="application/json")
 
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={},
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
-        auth_header = responses.calls[0].request.headers['Authorization']
-        self.assertEqual(auth_header, "Token test_token")
-        self.assertEqual(result, {"items": []})
+        self.assertEqual(result, {"items": [
+            {"name": "Mother Name", "value": "Unknown"},
+            {"name": "Mother Surname", "value": "Unknown"},
+            {"name": "Date of last period", "value": "Unknown"},
+            {"name": "Language Preference", "value": "Unknown"},
+            {"name": "ID Type", "value": "Unknown"},
+            {"name": "ID Number", "value": "Unknown"},
+            {"name": "Message Receiver", "value": "Unknown"},
+            {"name": "Receiver ID", "value": "Unknown"},
+            {"name": "Head of Household Name", "value": "Unknown"},
+            {"name": "Head of Household Surname", "value": "Unknown"},
+            {"name": "Head of Household ID", "value": "Unknown"},
+            {"name": "Operator ID", "value": "Unknown"},
+            {"name": "Receives Messages As", "value": "Unknown"},
+        ]})
 
     @responses.activate
     def test_read_data_one_registration(self):
@@ -112,10 +164,13 @@ class RegistrationPodTest(BaseCasesTest):
             callback=self.registration_callback_one_match,
             match_querystring=True, content_type="application/json")
 
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={},
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
-        auth_header = responses.calls[0].request.headers['Authorization']
-        self.assertEqual(auth_header, "Token test_token")
         self.assertEqual(result, {"items": [
             {"name": "Mother Name", "value": "sue"},
             {"name": "Mother Surname", "value": "zin"},
@@ -136,6 +191,30 @@ class RegistrationPodTest(BaseCasesTest):
         ]})
 
     @responses.activate
+    def test_can_get_data_from_identity_store(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': []},
+            match_querystring=True, content_type="application/json")
+
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={
+                'details': {
+                    'mama_id_no': '12345'
+                }
+            },
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][5],
+            {"name": "ID Number", "value": "12345"},
+        )
+
+    @responses.activate
     def test_no_http_request_if_contact_uuid_is_none(self):
         contact_no_uuid = self.create_contact(self.unicef, None, "Mother")
         message = self.create_message(
@@ -147,3 +226,81 @@ class RegistrationPodTest(BaseCasesTest):
 
         self.assertEqual(len(responses.calls), 0)
         self.assertEqual(result, {'items': []})
+
+    @responses.activate
+    def test_top_level_results_precendence_over_data(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': [{
+                'mama_name': 'sue-toplevel',
+                'data': {
+                    'mama_name': 'sue-data',
+                },
+            }]},
+            match_querystring=True, content_type='application/json')
+
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={},
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][0],
+            {'name': 'Mother Name', 'value': 'sue-toplevel'},
+        )
+
+    @responses.activate
+    def test_identity_store_precendence_over_hub(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': [{
+                'mama_name': 'sue-hub',
+                'data': {},
+            }]},
+            match_querystring=True, content_type='application/json')
+
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={
+                'details': {
+                    'mama_name': 'sue-identity-store',
+                },
+            },
+            match_querystring=True, content_type='application/json')
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][0],
+            {'name': 'Mother Name', 'value': 'sue-identity-store'},
+        )
+
+    @responses.activate
+    def test_multiple_results_uses_first_result(self):
+        responses.add(
+            responses.GET, self.url,
+            json={'results': [{
+                'mama_name': 'result-one',
+                'data': {},
+            }, {
+                'mama_name': 'result-two',
+                'data': {},
+            }]},
+            match_querystring=True, content_type='application/json')
+
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={},
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+
+        self.assertEqual(len(result['items']), 13)
+        self.assertEqual(
+            result['items'][0],
+            {'name': 'Mother Name', 'value': 'result-one'},
+        )
