@@ -154,7 +154,7 @@ class RegistrationPodTest(BaseCasesTest):
             {"name": "Head of Household ID", "value": "Unknown"},
             {"name": "Operator ID", "value": "Unknown"},
             {"name": "Receives Messages As", "value": "Unknown"},
-        ]})
+        ], 'actions': []})
 
     @responses.activate
     def test_read_data_one_registration(self):
@@ -188,7 +188,7 @@ class RegistrationPodTest(BaseCasesTest):
             {"name": "Operator ID", "value":
                 "hcw00001-63e2-4acc-9b94-26663b9bc267"},
             {"name": "Receives Messages As", "value": "text"},
-        ]})
+        ], 'actions': []})
 
     @responses.activate
     def test_can_get_data_from_identity_store(self):
@@ -225,7 +225,7 @@ class RegistrationPodTest(BaseCasesTest):
         result = self.pod.read_data({'case_id': case.id})
 
         self.assertEqual(len(responses.calls), 0)
-        self.assertEqual(result, {'items': []})
+        self.assertEqual(result, {'items': [], 'actions': []})
 
     @responses.activate
     def test_top_level_results_precendence_over_data(self):

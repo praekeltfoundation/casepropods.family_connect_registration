@@ -25,6 +25,19 @@ class RegistrationPodConfig(PodConfig):
 
 
 class RegistrationPod(Pod):
+    def __init__(self, pod_type, config):
+        super(RegistrationPod, self).__init__(pod_type, config)
+
+        self.identity_store = IdentityStoreApiClient(
+            auth_token=self.config.identity_store_token,
+            api_url=self.config.identity_store_api_url,
+        )
+
+        self.hub_api = HubApiClient(
+            auth_token=self.config.hub_token,
+            api_url=self.config.hub_api_url,
+        )
+
     def lookup_field_from_dictionaries(self, field, *lists):
         """
         Receives a 'field' and one or more lists of dictionaries
@@ -37,56 +50,58 @@ class RegistrationPod(Pod):
 
         return 'Unknown'
 
-    def read_data(self, params):
-        from casepro.cases.models import Case
-
-        # Setup
-        content = {"items": []}
-        contact_id_fieldname = self.config.contact_id_fieldname
-        mapping = self.config.field_mapping
-        case_id = params["case_id"]
-        case = Case.objects.get(pk=case_id)
-
-        if case.contact.uuid is None:
-            return content
-
-        hub_api = HubApiClient(
-            auth_token=self.config.hub_token,
-            api_url=self.config.hub_api_url,
-        )
-
-        response = hub_api.get_registrations(
-            params={contact_id_fieldname: case.contact.uuid})
-
-        results = list(response["results"])
-
-        results_data_field = [result['data'] for result in results]
-
-        identity_store = IdentityStoreApiClient(
-            auth_token=self.config.identity_store_token,
-            api_url=self.config.identity_store_api_url,
-        )
-
-        identity = identity_store.get_identity(case.contact.uuid)
-
+    def get_identity_registration_data(self, identity, registrations):
+        """
+        Given an identity and a list of registrations, formats the registration
+        data into the pod format.
+        """
         if identity is not None and 'details' in identity:
             identity_details = [identity['details']]
         else:
             identity_details = []
 
-        for field in mapping:
+        registration_data_fields = [r['data'] for r in registrations]
+
+        items = []
+        for field in self.config.field_mapping:
             value = self.lookup_field_from_dictionaries(
                 field['field'],
                 identity_details,
-                results,
-                results_data_field,
+                registrations,
+                registration_data_fields,
             )
-            content['items'].append({
+            items.append({
                 'name': field['field_name'],
                 'value': value,
             })
+        return items
 
-        return content
+    def read_data(self, params):
+        from casepro.cases.models import Case
+
+        case_id = params["case_id"]
+        case = Case.objects.get(pk=case_id)
+
+        items = []
+        actions = []
+        result = {
+            'items': items,
+            'actions': actions,
+        }
+
+        if case.contact.uuid is None:
+            return result
+
+        registrations = self.hub_api.get_registrations(params={
+            self.config.contact_id_fieldname: case.contact.uuid,
+        })
+        registrations = list(registrations['results'])
+        identity = self.identity_store.get_identity(case.contact.uuid)
+
+        items.extend(self.get_identity_registration_data(
+            identity, registrations))
+
+        return result
 
 
 class RegistrationPlugin(PodPlugin):
