@@ -135,7 +135,7 @@ class RegistrationPodTest(BaseCasesTest):
 
         responses.add(
             responses.GET, self.identity_store_url,
-            json={},
+            json={'details': {}},
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -166,7 +166,7 @@ class RegistrationPodTest(BaseCasesTest):
 
         responses.add(
             responses.GET, self.identity_store_url,
-            json={},
+            json={'details': {}},
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -241,7 +241,7 @@ class RegistrationPodTest(BaseCasesTest):
 
         responses.add(
             responses.GET, self.identity_store_url,
-            json={},
+            json={'details': {}},
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -294,7 +294,7 @@ class RegistrationPodTest(BaseCasesTest):
 
         responses.add(
             responses.GET, self.identity_store_url,
-            json={},
+            json={'details': {}},
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
