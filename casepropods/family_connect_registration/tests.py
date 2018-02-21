@@ -477,17 +477,9 @@ class RegistrationPodTest(BaseCasesTest):
             callback=self.registration_callback_no_matches,
             match_querystring=True, content_type="application/json")
 
-        responses.add(
+        responses.add_callback(
             responses.GET, self.identity_store_url,
-            json={
-                'details': {
-                    'addresses': {
-                        'msisdn': {
-                            '+27820000000': {},
-                        },
-                    },
-                },
-            },
+            callback=self.identity_callback,
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
