@@ -18,6 +18,15 @@ class RegistrationPodTest(BaseCasesTest):
             self.contact.uuid
         self.identity_store_url = ('http://identity-store/api/v1/'
                                    'identities/{0}/').format(self.contact.uuid)
+        self.subscriptions_url = (
+            'http://sbm/api/v1/subscriptions/?active=True&identity={0}'.format(
+                self.contact.uuid)
+        )
+        self.messageset_url = 'http://sbm/api/v1/messageset/'
+        self.wassup_url = (
+            'http://wassup/api/v1?wait=True&number=%2B27821234567'
+        )
+        self.create_change_url = 'http://hub/api/v1/change/'
 
         self.pod = RegistrationPod(
             apps.get_app_config('family_connect_registration_pod'),
@@ -28,6 +37,11 @@ class RegistrationPodTest(BaseCasesTest):
                 'hub_token': "test_token",
                 'identity_store_api_url': 'http://identity-store/api/v1/',
                 'identity_store_token': 'identity-store-token',
+                'stage_based_messaging_url': 'http://sbm/api/v1/',
+                'stage_based_messaging_token': 'sbm-token',
+                'wassup_url': 'http://wassup/api/v1',
+                'wassup_token': 'wassup-token',
+                'wassup_number': '+27821234567',
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
                     {"field": "mama_name", "field_name": "Mother Name"},
@@ -94,6 +108,93 @@ class RegistrationPodTest(BaseCasesTest):
             }]}
         return (200, headers, json.dumps(resp))
 
+    def subscription_callback_no_matches(self, request):
+        headers = {'Content-Type': "application/json"}
+        resp = {
+            "next": None,
+            "previous": None,
+            "results": []
+        }
+        return (200, headers, json.dumps(resp))
+
+    def subscription_callback_one_match(self, request):
+        headers = {'Content-Type': "application/json"}
+        resp = {
+            "next": None,
+            "previous": None,
+            "results": [
+                {
+                    "id": "2a67cc6a-9aec-407c-8b85-9565045843b6",
+                    "identity": self.contact.uuid,
+                    "messageset": 1,
+                    "active": True,
+                    "completed": False,
+                    "schedule": 1,
+                    "process_status": 0,
+                    "created_at": "2018-02-19T13:00:08.926441Z",
+                    "updated_at": "2018-02-19T13:00:09.016233Z",
+                },
+            ]
+        }
+        return (200, headers, json.dumps(resp))
+
+    def messageset_callback_no_matches(self, request):
+        headers = {'Content-Type': "application/json"}
+        resp = {
+            "next": None,
+            "previous": None,
+            "results": []
+        }
+        return (200, headers, json.dumps(resp))
+
+    def messageset_callback_one_match(self, short_name):
+        def callback(request):
+            headers = {'Content-Type': "application/json"}
+            resp = {
+                "next": None,
+                "previous": None,
+                "results": [
+                    {
+                        "id": 1,
+                        "short_name": short_name,
+                        "content_type": "text",
+                        "notes": "",
+                        "next_set": 2,
+                        "default_schedule": 1,
+                        "created_at": "2016-08-05T15:46:44.848890Z",
+                        "updated_at": "2016-08-05T15:48:57.469151Z"
+                    },
+                ]
+            }
+            return (200, headers, json.dumps(resp))
+        return callback
+
+    def wassup_callback(self, exists):
+        def callback(response):
+            headers = {'Content-Type': "application/json"}
+            resp = {
+                '+27821234567': {
+                    'exists': exists,
+                    'username': '27820000000',
+                },
+            }
+            return (200, headers, json.dumps(resp))
+        return callback
+
+    def identity_callback(self, request):
+        headers = {'Content-Type': "application/json"}
+        resp = {
+            'id': 'identity-id',
+            'details': {
+                'addresses': {
+                    'msisdn': {
+                        '+27820000000': {},
+                    },
+                },
+            },
+        }
+        return (200, headers, json.dumps(resp))
+
     def test_lookup_field_from_one_dictionary(self):
         field = 'test-field'
         list_one = [{'test-field': 'first-value'}]
@@ -138,6 +239,16 @@ class RegistrationPodTest(BaseCasesTest):
             json={'details': {}},
             match_querystring=True, content_type="application/json")
 
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
         self.assertEqual(result, {"items": [
@@ -167,6 +278,16 @@ class RegistrationPodTest(BaseCasesTest):
         responses.add(
             responses.GET, self.identity_store_url,
             json={'details': {}},
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -204,6 +325,16 @@ class RegistrationPodTest(BaseCasesTest):
                     'mama_id_no': '12345'
                 }
             },
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -244,6 +375,16 @@ class RegistrationPodTest(BaseCasesTest):
             json={'details': {}},
             match_querystring=True, content_type="application/json")
 
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
         self.assertEqual(len(result['items']), 13)
@@ -271,6 +412,16 @@ class RegistrationPodTest(BaseCasesTest):
             },
             match_querystring=True, content_type='application/json')
 
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
         self.assertEqual(len(result['items']), 13)
@@ -297,10 +448,206 @@ class RegistrationPodTest(BaseCasesTest):
             json={'details': {}},
             match_querystring=True, content_type="application/json")
 
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
         result = self.pod.read_data({'case_id': self.case.id})
 
         self.assertEqual(len(result['items']), 13)
         self.assertEqual(
             result['items'][0],
             {'name': 'Mother Name', 'value': 'result-one'},
+        )
+
+    @responses.activate
+    def test_wassup_number_not_recognised(self):
+        """
+        If the wassup API returns that the number is not recognised, then there
+        should be no switch channel action.
+        """
+        responses.add_callback(
+            responses.GET, self.url,
+            callback=self.registration_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add(
+            responses.GET, self.identity_store_url,
+            json={
+                'details': {
+                    'addresses': {
+                        'msisdn': {
+                            '+27820000000': {},
+                        },
+                    },
+                },
+            },
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_one_match,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_one_match('momconnect_prebirth'),
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            callback=self.wassup_callback(False),
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+        self.assertEqual(result['actions'], [])
+
+    @responses.activate
+    def test_channel_switch_on_whatsapp(self):
+        """
+        If they're on the WhatsApp messageset, then they should be given the
+        option to switch to the SMS messageset.
+        """
+        responses.add_callback(
+            responses.GET, self.url,
+            callback=self.registration_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.identity_store_url,
+            callback=self.identity_callback,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_one_match,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_one_match('whatsapp_prebirth'),
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            callback=self.wassup_callback(True),
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+        self.assertEqual(result['actions'], [{
+            'busy_test': 'Processing...',
+            'confirm': True,
+            'name': 'Switch to SMS',
+            'payload': {
+                'channel': 'sms',
+                'channel_label': 'SMS',
+                'identity': 'identity-id',
+            },
+            'type': 'switch_channel'
+        }])
+
+    @responses.activate
+    def test_channel_switch_on_sms(self):
+        """
+        If they're on the sms messageset, then they should be given the option
+        to switch to the WhatsApp messageset
+        """
+        responses.add_callback(
+            responses.GET, self.url,
+            callback=self.registration_callback_no_matches,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.identity_store_url,
+            callback=self.identity_callback,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.subscriptions_url,
+            callback=self.subscription_callback_one_match,
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, self.messageset_url,
+            callback=self.messageset_callback_one_match('momconnect_prebirth'),
+            match_querystring=True, content_type="application/json")
+
+        responses.add_callback(
+            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            callback=self.wassup_callback(True),
+            match_querystring=True, content_type="application/json")
+
+        result = self.pod.read_data({'case_id': self.case.id})
+        self.assertEqual(result['actions'], [{
+            'busy_test': 'Processing...',
+            'confirm': True,
+            'name': 'Switch to WhatsApp',
+            'payload': {
+                'channel': 'whatsapp',
+                'channel_label': 'WhatsApp',
+                'identity': 'identity-id',
+            },
+            'type': 'switch_channel'
+        }])
+
+    @responses.activate
+    def test_switch_action_switch_channel(self):
+        """
+        Switching the channel should make the correct request to the
+        registration API
+        """
+        responses.add(
+            responses.POST, self.create_change_url,
+            json={})
+        result = self.pod.perform_action(
+            'switch_channel',
+            {
+                'channel': 'whatsapp',
+                'channel_label': 'WhatsApp',
+                'identity': 'identity-id',
+            }
+        )
+        self.assertEqual(
+            result, (True, {
+                "message": "Successfully switched to WhatsApp"
+            })
+        )
+        self.assertEqual(
+            json.loads(responses.calls[0].request.body),
+            {
+                'action': "switch_channel",
+                'registrant_id': "identity-id",
+                'data': {
+                    'channel': "whatsapp",
+                },
+            }
+        )
+
+    @responses.activate
+    def test_switch_action_switch_channel_error(self):
+        """
+        An HTTP error when trying to switch the channel should result in an
+        error being sent back
+        """
+        responses.add(
+            responses.POST, self.create_change_url,
+            status=500)
+        result = self.pod.perform_action(
+            'switch_channel',
+            {
+                'channel': 'whatsapp',
+                'channel_label': 'WhatsApp',
+                'identity': 'identity-id',
+            }
+        )
+        self.assertEqual(
+            result, (False, {
+                "message": "Failed to switch to WhatsApp"
+            })
         )

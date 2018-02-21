@@ -1,6 +1,10 @@
 from confmodel import fields
 from casepro.pods import Pod, PodConfig, PodPlugin
-from seed_services_client import HubApiClient, IdentityStoreApiClient
+from demands import HTTPServiceError
+import re
+import requests
+from seed_services_client import (
+    HubApiClient, IdentityStoreApiClient, StageBasedMessagingApiClient)
 
 
 class RegistrationPodConfig(PodConfig):
@@ -12,6 +16,17 @@ class RegistrationPodConfig(PodConfig):
         "URL of the identity store API service", required=True)
     identity_store_token = fields.ConfigText(
         "Authentication token for identity store service", required=True)
+    stage_based_messaging_url = fields.ConfigText(
+        "URL of the stage based messaging API service", required=True)
+    stage_based_messaging_token = fields.ConfigText(
+        "Authentication token for stage based messaging endpoint",
+        required=True)
+    wassup_url = fields.ConfigText(
+        "URL for the Wassup API", required=True)
+    wassup_token = fields.ConfigText(
+        "Authentication token for the Wassup API", required=True)
+    wassup_number = fields.ConfigText(
+        "The phone number of the wassup channel", required=True)
     contact_id_fieldname = fields.ConfigText(
         "The field-name to identify the contact in the registration service"
         "Example: 'mother_id'",
@@ -31,6 +46,11 @@ class RegistrationPod(Pod):
         self.identity_store = IdentityStoreApiClient(
             auth_token=self.config.identity_store_token,
             api_url=self.config.identity_store_api_url,
+        )
+
+        self.stage_based_messaging = StageBasedMessagingApiClient(
+            auth_token=self.config.stage_based_messaging_token,
+            api_url=self.config.stage_based_messaging_url,
         )
 
         self.hub_api = HubApiClient(
@@ -76,6 +96,87 @@ class RegistrationPod(Pod):
             })
         return items
 
+    def has_whatsapp_account(self, number):
+        """
+        Checks if the given number has a registered whatsapp account, using the
+        wassup API
+        """
+        res = requests.get(
+            self.config.wassup_url,
+            {
+                'number': self.config.wassup_number,
+                'address': number,
+                'wait': True,
+            },
+            headers={
+                'Authorization': 'Token {}'.format(self.config.wassup_token),
+            },
+        )
+        res.raise_for_status()
+        res = res.json()
+        existing = filter(lambda d: d.get('exists', False), res.values())
+        return bool(existing)
+
+    def get_switch_channel_action(self, channel, identity):
+        """
+        Given the current channel that the user is on, returns a pod action
+        for switching to the other channel choice
+        """
+        opposite_channel = 'whatsapp' if channel == 'sms' else 'sms'
+        opposite_label = 'WhatsApp' if channel == 'sms' else 'SMS'
+        return {
+            'type': 'switch_channel',
+            'name': 'Switch to {}'.format(opposite_label),
+            'confirm': True,
+            'busy_test': 'Processing...',
+            'payload': {
+                'channel': opposite_channel,
+                'channel_label': opposite_label,
+                'identity': identity['id'],
+            },
+        }
+
+    def get_address_from_identity(self, identity):
+        """
+        Given an identity from the identity store, returns the active address
+        for that identity. If no address exists, returns None
+        """
+        addresses = identity.get(
+            'details', {}).get('addresses', {}).get('msisdn', {})
+        msisdn = None
+        for address, data in addresses.items():
+            if data.get('optedout', False):
+                continue
+            if data.get('default', False):
+                continue
+            msisdn = address
+        return msisdn
+
+    def channel_switch_option_available(self, identity, active_subs):
+        """
+        Returns True if the channel switch option should be shown, else
+        returns False.
+        """
+        if len(active_subs) == 0:
+            # If no active subscriptions, then cannot change channel
+            return False
+        # Check if registered on WhatsApp network
+        msisdn = self.get_address_from_identity(identity)
+        return self.has_whatsapp_account(msisdn)
+
+    def get_current_channel(self, subscriptions, messagesets):
+        """
+        Given the list of active subscriptions for a user, as well as a list
+        of messagesets, returns the current channel that the user is receiving
+        messages on.
+        """
+        messageset_mapping = {ms['id']: ms['short_name'] for ms in messagesets}
+        for sub in subscriptions:
+            messageset = messageset_mapping[sub['messageset']]
+            if re.match(r'^whatsapp_', messageset):
+                return 'whatsapp'
+        return 'sms'
+
     def read_data(self, params):
         from casepro.cases.models import Case
 
@@ -101,7 +202,45 @@ class RegistrationPod(Pod):
         items.extend(self.get_identity_registration_data(
             identity, registrations))
 
+        subscriptions = self.stage_based_messaging.get_subscriptions(params={
+            'active': True,
+            'identity': case.contact.uuid,
+        })
+        subscriptions = list(subscriptions['results'])
+        messagesets = self.stage_based_messaging.get_messagesets()
+        messagesets = list(messagesets['results'])
+
+        if self.channel_switch_option_available(identity, subscriptions):
+            channel = self.get_current_channel(subscriptions, messagesets)
+            actions.append(self.get_switch_channel_action(channel, identity))
+
         return result
+
+    def switch_channel(self, identity, channel):
+        """
+        Switches the channel of the specified identity to the specified channel
+        """
+        return self.hub_api.create_change({
+            'action': 'switch_channel',
+            'registrant_id': identity,
+            'data': {
+                'channel': channel,
+            },
+        })
+
+    def perform_action(self, type_, params):
+        if type_ == 'switch_channel':
+            try:
+                self.switch_channel(params['identity'], params['channel'])
+                return (True, {
+                    "message": "Successfully switched to {}".format(
+                        params['channel_label']),
+                })
+            except HTTPServiceError:
+                return (False, {
+                    "message": "Failed to switch to {}".format(
+                        params['channel_label']),
+                })
 
 
 class RegistrationPlugin(PodPlugin):
