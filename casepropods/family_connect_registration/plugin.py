@@ -1,6 +1,10 @@
 from confmodel import fields
 from casepro.pods import Pod, PodConfig, PodPlugin
 from demands import HTTPServiceError
+try:
+    import itertools.ifilter as filter
+except ImportError:
+    pass
 import re
 import requests
 from seed_services_client import (
@@ -115,7 +119,7 @@ class RegistrationPod(Pod):
         res.raise_for_status()
         res = res.json()
         existing = filter(lambda d: d.get('exists', False), res.values())
-        return bool(existing)
+        return any(existing)
 
     def get_switch_channel_action(self, channel, identity):
         """
