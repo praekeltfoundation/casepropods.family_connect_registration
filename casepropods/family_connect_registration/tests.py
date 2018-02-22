@@ -643,3 +643,45 @@ class RegistrationPodTest(BaseCasesTest):
                 "message": "Failed to switch to WhatsApp"
             })
         )
+
+    def test_get_address_from_identity(self):
+        """
+        The get_address_from_identity method should get the correct address
+        from the provided identity
+        """
+        address = self.pod.get_address_from_identity({
+            'details': {
+                'addresses': {
+                    'msisdn': {
+                        '+27820000000': {},
+                    },
+                },
+            },
+        })
+        self.assertEqual(address, '+27820000000')
+
+        # Should skip opted out addresses
+        address = self.pod.get_address_from_identity({
+            'details': {
+                'addresses': {
+                    'msisdn': {
+                        '+27820000000': {'optedout': True},
+                    },
+                },
+            },
+        })
+        self.assertEqual(address, None)
+
+        # Should return default addresses if other addresses are present
+        address = self.pod.get_address_from_identity({
+            'details': {
+                'addresses': {
+                    'msisdn': {
+                        '+27820000000': {},
+                        '+27821111111': {'default': True},
+                        '+27822222222': {},
+                    },
+                },
+            },
+        })
+        self.assertEqual(address, '+27821111111')

@@ -152,7 +152,7 @@ class RegistrationPod(Pod):
             if data.get('optedout', False):
                 continue
             if data.get('default', False):
-                continue
+                return address
             msisdn = address
         return msisdn
 
