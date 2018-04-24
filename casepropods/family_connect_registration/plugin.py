@@ -156,7 +156,8 @@ class RegistrationPod(Pod):
             msisdn = address
         return msisdn
 
-    def channel_switch_option_available(self, identity, active_subs):
+    def channel_switch_option_available(
+                self, identity, active_subs, current_channel):
         """
         Returns True if the channel switch option should be shown, else
         returns False.
@@ -164,6 +165,12 @@ class RegistrationPod(Pod):
         if len(active_subs) == 0:
             # If no active subscriptions, then cannot change channel
             return False
+
+        # If they have any WhatsApp subscription, then they should be allowed
+        # to switch back to SMS
+        if current_channel == 'whatsapp':
+            return True
+
         # Check if registered on WhatsApp network
         msisdn = self.get_address_from_identity(identity)
         return self.has_whatsapp_account(msisdn)
@@ -214,8 +221,9 @@ class RegistrationPod(Pod):
         messagesets = self.stage_based_messaging.get_messagesets()
         messagesets = list(messagesets['results'])
 
-        if self.channel_switch_option_available(identity, subscriptions):
-            channel = self.get_current_channel(subscriptions, messagesets)
+        channel = self.get_current_channel(subscriptions, messagesets)
+        if self.channel_switch_option_available(
+                identity, subscriptions, channel):
             actions.append(self.get_switch_channel_action(channel, identity))
 
         return result
