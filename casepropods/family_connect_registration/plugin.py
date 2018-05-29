@@ -105,11 +105,11 @@ class RegistrationPod(Pod):
         Checks if the given number has a registered whatsapp account, using the
         wassup API
         """
-        res = requests.get(
+        res = requests.post(
             self.config.wassup_url,
-            {
+            json={
                 'number': self.config.wassup_number,
-                'address': number,
+                'msisdns': [number],
                 'wait': True,
             },
             headers={
@@ -118,7 +118,7 @@ class RegistrationPod(Pod):
         )
         res.raise_for_status()
         res = res.json()
-        existing = filter(lambda d: d.get('exists', False), res.values())
+        existing = filter(lambda d: d.get('status') == 'valid', res)
         return any(existing)
 
     def get_switch_channel_action(self, channel, identity):
