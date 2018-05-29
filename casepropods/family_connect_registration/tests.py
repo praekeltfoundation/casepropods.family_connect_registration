@@ -24,7 +24,7 @@ class RegistrationPodTest(BaseCasesTest):
         )
         self.messageset_url = 'http://sbm/api/v1/messageset/'
         self.wassup_url = (
-            'http://wassup/api/v1?wait=True&number=%2B27821234567'
+            'http://wassup/api/v1'
         )
         self.create_change_url = 'http://hub/api/v1/change/'
 
