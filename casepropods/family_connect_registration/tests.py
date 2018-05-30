@@ -24,7 +24,7 @@ class RegistrationPodTest(BaseCasesTest):
         )
         self.messageset_url = 'http://sbm/api/v1/messageset/'
         self.wassup_url = (
-            'http://wassup/api/v1?wait=True&number=%2B27821234567'
+            'http://wassup/api/v1'
         )
         self.create_change_url = 'http://hub/api/v1/change/'
 
@@ -172,12 +172,12 @@ class RegistrationPodTest(BaseCasesTest):
     def wassup_callback(self, exists):
         def callback(response):
             headers = {'Content-Type': "application/json"}
-            resp = {
-                '+27821234567': {
-                    'exists': exists,
-                    'username': '27820000000',
-                },
-            }
+            resp = [{
+                'wa_exists': exists,
+                'msisdn': '27820000000',
+                'status': "valid" if exists else "invalid",
+                'wa_username': '27820000000'
+            }]
             return (200, headers, json.dumps(resp))
         return callback
 
@@ -493,7 +493,7 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            responses.POST, self.wassup_url,
             callback=self.wassup_callback(False),
             match_querystring=True, content_type="application/json")
 
@@ -528,7 +528,7 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            responses.POST, self.wassup_url,
             callback=self.wassup_callback(False),
             match_querystring=True, content_type="application/json")
 
@@ -572,7 +572,7 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.GET, '{}&address=%2B27820000000'.format(self.wassup_url),
+            responses.POST, self.wassup_url,
             callback=self.wassup_callback(True),
             match_querystring=True, content_type="application/json")
 
