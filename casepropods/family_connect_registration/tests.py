@@ -23,8 +23,8 @@ class RegistrationPodTest(BaseCasesTest):
                 self.contact.uuid)
         )
         self.messageset_url = 'http://sbm/api/v1/messageset/'
-        self.wassup_url = (
-            'http://wassup/api/v1'
+        self.engage_url = (
+            'https://engage.example.org/v1/contacts'
         )
         self.create_change_url = 'http://hub/api/v1/change/'
 
@@ -39,9 +39,9 @@ class RegistrationPodTest(BaseCasesTest):
                 'identity_store_token': 'identity-store-token',
                 'stage_based_messaging_url': 'http://sbm/api/v1/',
                 'stage_based_messaging_token': 'sbm-token',
-                'wassup_url': 'http://wassup/api/v1',
-                'wassup_token': 'wassup-token',
-                'wassup_number': '+27821234567',
+                'engage_url': 'https://engage.example.org/v1/contacts',
+                'engage_api_token': 'rapidprotoken',
+                'engage_number': '+27821234567',
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
                     {"field": "mama_name", "field_name": "Mother Name"},
@@ -169,7 +169,7 @@ class RegistrationPodTest(BaseCasesTest):
             return (200, headers, json.dumps(resp))
         return callback
 
-    def wassup_callback(self, exists):
+    def engage_callback(self, exists):
         def callback(response):
             headers = {'Content-Type': "application/json"}
             resp = [{
@@ -467,9 +467,9 @@ class RegistrationPodTest(BaseCasesTest):
         )
 
     @responses.activate
-    def test_wassup_number_not_recognised(self):
+    def test_engage_number_not_recognised(self):
         """
-        If the wassup API returns that the number is not recognised, then there
+        If the Engage API returns that the number is not recognised, then there
         should be no switch channel action.
         """
         responses.add_callback(
@@ -493,8 +493,8 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.POST, self.wassup_url,
-            callback=self.wassup_callback(False),
+            responses.POST, self.engage_url,
+            callback=self.engage_callback(False),
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -528,8 +528,8 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.POST, self.wassup_url,
-            callback=self.wassup_callback(False),
+            responses.POST, self.engage_url,
+            callback=self.engage_callback(False),
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
@@ -572,8 +572,8 @@ class RegistrationPodTest(BaseCasesTest):
             match_querystring=True, content_type="application/json")
 
         responses.add_callback(
-            responses.POST, self.wassup_url,
-            callback=self.wassup_callback(True),
+            responses.POST, self.engage_url,
+            callback=self.engage_callback(True),
             match_querystring=True, content_type="application/json")
 
         result = self.pod.read_data({'case_id': self.case.id})
