@@ -28,6 +28,7 @@ before_install:
   - ln -s /tmp/casepro/casepro/settings.py.dev /tmp/casepro/casepro/settings.py
 
 install:
+  - pip install psycopg2>=2.7.5
   - pip install -e $TRAVIS_BUILD_DIR/
   - pip install -r $TRAVIS_BUILD_DIR/requirements-dev.txt
 
