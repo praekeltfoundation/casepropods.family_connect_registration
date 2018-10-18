@@ -172,7 +172,6 @@ class RegistrationPod(Pod):
 
         # Check if registered on WhatsApp network
         msisdn = self.get_address_from_identity(identity)
-        wait_for_response = "wait"
         return self.has_whatsapp_account(msisdn)
 
     def get_current_channel(self, subscriptions, messagesets):
