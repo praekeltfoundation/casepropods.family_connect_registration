@@ -98,7 +98,7 @@ class RegistrationPod(Pod):
             })
         return items
 
-    def has_whatsapp_account(self, number, wait_for_response):
+    def has_whatsapp_account(self, number):
         """
         Checks if the given number has a registered whatsapp account, using the
         Engage API
@@ -108,7 +108,7 @@ class RegistrationPod(Pod):
             self.config.engage_url,
             json={
                 "contacts": [number],
-                "blocking": wait_for_response
+                "blocking": "wait"
             },
             headers={
                 'Authorization': 'Bearer {}'.format(
@@ -173,7 +173,7 @@ class RegistrationPod(Pod):
         # Check if registered on WhatsApp network
         msisdn = self.get_address_from_identity(identity)
         wait_for_response = "wait"
-        return self.has_whatsapp_account(msisdn, wait_for_response)
+        return self.has_whatsapp_account(msisdn)
 
     def get_current_channel(self, subscriptions, messagesets):
         """
