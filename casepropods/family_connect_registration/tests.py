@@ -41,7 +41,6 @@ class RegistrationPodTest(BaseCasesTest):
                 'stage_based_messaging_token': 'sbm-token',
                 'engage_url': 'https://engage.example.org/v1/contacts',
                 'engage_api_token': 'rapidprotoken',
-                'engage_number': '+27821234567',
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
                     {"field": "mama_name", "field_name": "Mother Name"},
