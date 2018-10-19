@@ -173,7 +173,7 @@ class RegistrationPodTest(BaseCasesTest):
             headers = {'Content-Type': "application/json"}
             resp = [{
                 "input": "+27820000000",
-                "status": "valid" if exists else "invalid" 
+                "status": "valid" if exists else "invalid",
                 "wa_id": "27820000000"
             }]
             return (200, headers, json.dumps(resp))
