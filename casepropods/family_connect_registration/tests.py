@@ -172,10 +172,9 @@ class RegistrationPodTest(BaseCasesTest):
         def callback(response):
             headers = {'Content-Type': "application/json"}
             resp = [{
-                'wa_exists': exists,
-                'msisdn': '27820000000',
-                'status': "valid" if exists else "invalid",
-                'wa_username': '27820000000'
+                "input": "+27820000000",
+                "status": "valid" if exists else "invalid" 
+                "wa_id": "27820000000"
             }]
             return (200, headers, json.dumps(resp))
         return callback
