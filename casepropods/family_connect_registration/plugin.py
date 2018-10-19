@@ -25,12 +25,10 @@ class RegistrationPodConfig(PodConfig):
     stage_based_messaging_token = fields.ConfigText(
         "Authentication token for stage based messaging endpoint",
         required=True)
-    wassup_url = fields.ConfigText(
-        "URL for the Wassup API", required=True)
-    wassup_token = fields.ConfigText(
-        "Authentication token for the Wassup API", required=True)
-    wassup_number = fields.ConfigText(
-        "The phone number of the wassup channel", required=True)
+    engage_url = fields.ConfigText(
+        "URL for the engage API", required=True)
+    engage_api_token = fields.ConfigText(
+        "Url for engage API", required=True)
     contact_id_fieldname = fields.ConfigText(
         "The field-name to identify the contact in the registration service"
         "Example: 'mother_id'",
@@ -103,17 +101,18 @@ class RegistrationPod(Pod):
     def has_whatsapp_account(self, number):
         """
         Checks if the given number has a registered whatsapp account, using the
-        wassup API
+        Engage API
         """
+
         res = requests.post(
-            self.config.wassup_url,
+            self.config.engage_url,
             json={
-                'number': self.config.wassup_number,
-                'msisdns': [number],
-                'wait': True,
+                "contacts": [number],
+                "blocking": "wait"
             },
             headers={
-                'Authorization': 'Token {}'.format(self.config.wassup_token),
+                'Authorization': 'Bearer {}'.format(
+                    self.config.engage_api_token),
             },
         )
         res.raise_for_status()
