@@ -7,30 +7,35 @@ sudo: false
 
 language: python
 python:
-- '3.6'
+  - '2.7'
+  - '3.4.4'
+  - '3.5'
 
 services:
-- redis-server
+  - redis-server
 
 addons:
-  postgresql: '9.6'
+  - postgresql: '9.3'
 
 before_install:
-- git clone https://github.com/praekelt/casepro.git /tmp/casepro
-- pip install -r /tmp/casepro/pip-freeze.txt
-- psql -U postgres -c "CREATE USER casepro WITH PASSWORD 'nyaruka';"
-- psql -U postgres -c "ALTER ROLE casepro WITH SUPERUSER;"
-- psql -U casepro postgres -c "CREATE DATABASE casepro;"
-- cat $TRAVIS_BUILD_DIR/.travis-casepro-additional-settings.py >> /tmp/casepro/casepro/settings.py.dev
-- ln -s /tmp/casepro/casepro/settings.py.dev /tmp/casepro/casepro/settings.py
+  # Clone the latest casepro repo, install the dependencies and setup
+  # the database
+  - git clone https://github.com/praekelt/casepro.git /tmp/casepro
+  - pip install -r /tmp/casepro/pip-freeze.txt
+  - psql -U postgres -c "CREATE USER casepro WITH PASSWORD 'nyaruka';"
+  - psql -U postgres -c "ALTER ROLE casepro WITH SUPERUSER;"
+  - psql -U casepro postgres -c "CREATE DATABASE casepro;"
+  # Append to the CasePro settings file to install this pod as an app
+  - cat $TRAVIS_BUILD_DIR/.travis-casepro-additional-settings.py >> /tmp/casepro/casepro/settings.py.dev
+  - ln -s /tmp/casepro/casepro/settings.py.dev /tmp/casepro/casepro/settings.py
 
 install:
-- pip install -e $TRAVIS_BUILD_DIR/
-- pip install -r $TRAVIS_BUILD_DIR/requirements-dev.txt
+  - pip install -e $TRAVIS_BUILD_DIR/
+  - pip install -r $TRAVIS_BUILD_DIR/requirements-dev.txt
 
 script:
-- python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
-- flake8 $TRAVIS_BUILD_DIR/
+  - python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
+  - flake8 $TRAVIS_BUILD_DIR/
 
 deploy:
   provider: pypi
