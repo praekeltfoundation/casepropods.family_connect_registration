@@ -7,30 +7,36 @@ sudo: false
 
 language: python
 python:
-  - '3.6'
+- '3.6'
 
 services:
-  - redis-server
+- redis-server
 
 addons:
-  postgresql: "9.6"
+  postgresql: '9.6'
 
 before_install:
-  # Clone the latest casepro repo, install the dependencies and setup
-  # the database
-  - git clone https://github.com/praekelt/casepro.git /tmp/casepro
-  - pip install -r /tmp/casepro/pip-freeze.txt
-  - psql -U postgres -c "CREATE USER casepro WITH PASSWORD 'nyaruka';"
-  - psql -U postgres -c "ALTER ROLE casepro WITH SUPERUSER;"
-  - psql -U casepro postgres -c "CREATE DATABASE casepro;"
-  # Append to the CasePro settings file to install this pod as an app
-  - cat $TRAVIS_BUILD_DIR/.travis-casepro-additional-settings.py >> /tmp/casepro/casepro/settings.py.dev
-  - ln -s /tmp/casepro/casepro/settings.py.dev /tmp/casepro/casepro/settings.py
+- git clone https://github.com/praekelt/casepro.git /tmp/casepro
+- pip install -r /tmp/casepro/pip-freeze.txt
+- psql -U postgres -c "CREATE USER casepro WITH PASSWORD 'nyaruka';"
+- psql -U postgres -c "ALTER ROLE casepro WITH SUPERUSER;"
+- psql -U casepro postgres -c "CREATE DATABASE casepro;"
+- cat $TRAVIS_BUILD_DIR/.travis-casepro-additional-settings.py >> /tmp/casepro/casepro/settings.py.dev
+- ln -s /tmp/casepro/casepro/settings.py.dev /tmp/casepro/casepro/settings.py
 
 install:
-  - pip install -e $TRAVIS_BUILD_DIR/
-  - pip install -r $TRAVIS_BUILD_DIR/requirements-dev.txt
+- pip install -e $TRAVIS_BUILD_DIR/
+- pip install -r $TRAVIS_BUILD_DIR/requirements-dev.txt
 
 script:
-  - python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
-  - flake8 $TRAVIS_BUILD_DIR/
+- python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
+- flake8 $TRAVIS_BUILD_DIR/
+
+deploy:
+  provider: pypi
+  user: praekelt.org
+  password:
+    secure: eFJqlfNkXFZDxASEbF4iMitX6gXTzmBiO7qWz7gX+6Zwohg+vDmri+UMZUn023srv1td0OEHYOpJZmy9nzlYMkkKAPm/n2w1JjRMEtPPAkQqdwl8QuMy9RP55cVXOus0iKkc1yaN4ORUjjfSYpn2cl4FTgHt+aDypsjtH63JGHaiBccmxqB4VDXB24LnkHasbf+K19uT5KnHk0SJ7eGS+969kFQYBBNTPU3xhlTGgBVyIysBoC0OwGaE6+5uppAq2T0rkxvTrOB5bOqCLkANSS1Bc1apwhMw6Fu7rhMXr665FA8b5Mgl6zPu37gGAFofqa/n59CLdWk+wnpJGjPR7sr4j3tp853haIJwuRuHZVzg9zeYJbDLo0tH8N+p0WhLvNr6FsDwMN7HgfFwkbSezLcXDKP1TZh30XCfxm+R4+qF8fDAufJycvmzBkWSHJFJpLosDk+2IhWv1XJ7UkIHV1oLugQOdkMAzzTHHSSnTD99qyI9lSxT/mpPKHHkXWKUrh45Nn96BGbBTyMO2Yjrgl/qJCCQTO0IlynvHXUhhFIb8czllKkxFLX4kqdJpH6gg354CALWOEkV1C6UUwgjUPwE9utpTXZlWpjyWHvsKrD0iJdwG60jyZvw2Lg7zVxD0oYW/2lc6lntSLpnOm9ABuDmE9MhXR10jqd2IiREEAI=
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
