@@ -502,7 +502,7 @@ class RegistrationPodTest(BaseCasesTest):
     def test_channel_switch_on_whatsapp(self):
         """
         If they're on the WhatsApp messageset, then they should be given the
-        option to switch to the SMS messageset, even if they are not registered
+        option to switch to the SMS messageset, even if they're not registered
         on WhatsApp
         """
         responses.add_callback(
