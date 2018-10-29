@@ -34,3 +34,12 @@ install:
 script:
   - python /tmp/casepro/manage.py test -k $TRAVIS_BUILD_DIR/
   - flake8 $TRAVIS_BUILD_DIR/
+
+deploy:
+  provider: pypi
+  user: praekelt.org
+  password:
+    secure: SV6IMx7ptazZdiUMeKDPOMd7WbjpvcX8ARq+crx1niGcpC53sZcGFyN/tzhV7cSWSGmU92zneBVZ/IvfepyKA/w4OcsPJjvImkqI+Nca2oDr5hnmiUATl8xUu+c8dlTX4k87PiNlLKI1Rrs7CkHgBQd1uVv0lKskPowkQRvRM2ub1oa0RU3Kl49F1rzREHZylJhi+5U0w1EkNzm5IlZadbsrC+We835sH+BhOGkzQ9z27SviMFZF3HteNlEvxXA2FH9npWkVF+wvfaxHieOEFD8KmFlyHiH31Le+3LJpdQuArsQxBDzosZDjS49OnuJPYEqROWToF02YY6B5pL8yzudtgKXH7Lc3YYXCkxbLueE7X+qjlDeehk1iFEnGN4C1RWufcoRV4wwaz0MML52z9URz8liVk0rPmZgBykL8UGyTtAAKxGrn/+r/xAOwfAcp8D8gFtExzzHDpod5cEHz+tmYo/WeLN2QpPHgb20idUhX9ZW32PjIUOYFiiqcy6JvhqGpNpPKlKAiw/1O24WexgMGWRvLVCvFCEgUEh6SzApvC6PefBCvRGTPKos0MDc4mwuzLkNpkV+Fa39+1+cilhz2vX5/WMr0Yl3XKqb0Fx0zVENMwXSPXlZK+steeGeniLoqwAjAkT2I9t+71YPIyVoDF9NHH/yA32mtDBACKB0=
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
