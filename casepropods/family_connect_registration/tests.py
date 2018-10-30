@@ -40,7 +40,7 @@ class RegistrationPodTest(BaseCasesTest):
                 'stage_based_messaging_url': 'http://sbm/api/v1/',
                 'stage_based_messaging_token': 'sbm-token',
                 'engage_url': 'https://engage.example.org/v1/contacts',
-                'engage_api_token': 'rapidprotoken',
+                'engage_token': 'rapidprotoken',
                 'contact_id_fieldname': "mother_id",
                 'field_mapping': [
                     {"field": "mama_name", "field_name": "Mother Name"},
