@@ -117,7 +117,7 @@ class RegistrationPod(Pod):
         )
         res.raise_for_status()
         res = res.json()
-        existing = filter(lambda d: d.get('status') == 'valid', res)
+        existing = filter(lambda d: ('status') == 'valid', res)
         return any(existing)
 
     def get_switch_channel_action(self, channel, identity):
