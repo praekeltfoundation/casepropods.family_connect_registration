@@ -27,7 +27,7 @@ class RegistrationPodConfig(PodConfig):
         required=True)
     engage_url = fields.ConfigText(
         "URL for the engage API", required=True)
-    engage_api_token = fields.ConfigText(
+    engage_token = fields.ConfigText(
         "Url for engage API", required=True)
     contact_id_fieldname = fields.ConfigText(
         "The field-name to identify the contact in the registration service"
@@ -112,7 +112,7 @@ class RegistrationPod(Pod):
             },
             headers={
                 'Authorization': 'Bearer {}'.format(
-                    self.config.engage_api_token),
+                    self.config.engage_token),
             },
         )
         res.raise_for_status()
