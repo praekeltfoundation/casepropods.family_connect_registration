@@ -107,8 +107,8 @@ class RegistrationPod(Pod):
         res = requests.post(
             self.config.engage_url,
             json={
-                "contacts": [number],
-                "blocking": "wait"
+                "blocking": "wait",
+                "contacts": ["number"]
             },
             headers={
                 'Authorization': 'Bearer {}'.format(
@@ -117,7 +117,8 @@ class RegistrationPod(Pod):
         )
         res.raise_for_status()
         res = res.json()
-        existing = filter(lambda d: ('status') == 'valid', res)
+        existing = filter(lambda d: d.get(
+            'status') == 'valid', res['contacts'])
         return any(existing)
 
     def get_switch_channel_action(self, channel, identity):
