@@ -171,11 +171,15 @@ class RegistrationPodTest(BaseCasesTest):
     def engage_callback(self, exists):
         def callback(response):
             headers = {'Content-Type': "application/json"}
-            resp = [{
-                "input": "+27820000000",
-                "status": "valid" if exists else "invalid",
-                "wa_id": "27820000000"
-            }]
+            resp = {
+                'contacts': [
+                   {
+                      "input": "+27820000000",
+                      "status": "valid" if exists else "invalid",
+                      "wa_id": "27820000000"
+                    }
+                ]
+            }
             return (200, headers, json.dumps(resp))
         return callback
 
