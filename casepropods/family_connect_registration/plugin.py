@@ -108,7 +108,7 @@ class RegistrationPod(Pod):
             self.config.engage_url,
             json={
                 "blocking": "wait",
-                "contacts": ["number"]
+                "contacts": [number]
             },
             headers={
                 'Authorization': 'Bearer {}'.format(
